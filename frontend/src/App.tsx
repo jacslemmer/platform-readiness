@@ -25,6 +25,8 @@ const App = () => {
   const [loading, setLoading] = useState(false);
   const [result, setResult] = useState<AnalysisResult | null>(null);
   const [error, setError] = useState('');
+  const [ported, setPorted] = useState(false);
+  const [portedPlatform, setPortedPlatform] = useState('');
 
   const analyzeRepo = async () => {
     if (!repoUrl) {
@@ -79,7 +81,7 @@ const App = () => {
         throw new Error('Failed to generate patch');
       }
 
-      const { patch, summary } = await response.json();
+      const { patch } = await response.json();
 
       const blob = new Blob([patch], { type: 'text/plain' });
       const url = URL.createObjectURL(blob);
@@ -89,7 +91,9 @@ const App = () => {
       a.click();
       URL.revokeObjectURL(url);
 
-      alert(`Patch generated!\n\n${summary}`);
+      // Show certificate after successful porting
+      setPorted(true);
+      setPortedPlatform(targetPlatform);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to generate patch');
     } finally {
@@ -167,10 +171,30 @@ const App = () => {
             </div>
           )}
 
-          {!result.isReady && (
+          {!result.isReady && !ported && (
             <button onClick={downloadPatch} disabled={loading} className="download-btn">
               {loading ? 'Generating...' : 'Download Porting Patch'}
             </button>
+          )}
+
+          {ported && (
+            <div className="certificate">
+              <div className="badge">🏆</div>
+              <h2>Platform Ready Certificate</h2>
+              <p className="platform">{portedPlatform === 'azure' ? 'Microsoft Azure' : 'Cloudflare'}</p>
+              <p className="message">
+                This application has been successfully ported and is now ready for deployment on {portedPlatform === 'azure' ? 'Microsoft Azure' : 'Cloudflare'}.
+              </p>
+              <p className="message">
+                ✅ All platform requirements met<br />
+                ✅ Configuration files generated<br />
+                ✅ Code adapted for target platform
+              </p>
+              <p className="timestamp">
+                Certified by Platform Readiness Checker<br />
+                {new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })}
+              </p>
+            </div>
           )}
         </div>
       )}

@@ -104,6 +104,7 @@ button:disabled {
 
 .issues h3 {
   margin-bottom: 1rem;
+  color: #fff;
 }
 
 .issue {
@@ -112,6 +113,7 @@ button:disabled {
   border-radius: 4px;
   margin-bottom: 1rem;
   border-left: 4px solid #646cff;
+  color: #fff;
 }
 
 .issue.error {
@@ -131,6 +133,7 @@ button:disabled {
 .category {
   text-transform: capitalize;
   font-weight: 600;
+  color: #fff;
 }
 
 .severity {
@@ -139,15 +142,17 @@ button:disabled {
   padding: 0.25rem 0.5rem;
   border-radius: 4px;
   background: #333;
+  color: #fff;
 }
 
 .message {
   margin: 0.5rem 0;
+  color: #fff;
 }
 
 .suggestion {
   margin: 0.5rem 0;
-  color: #888;
+  color: #bbb;
   font-style: italic;
 }
 
@@ -158,4 +163,47 @@ button:disabled {
 
 .download-btn:hover:not(:disabled) {
   background: #059669;
+}
+
+.certificate {
+  margin-top: 2rem;
+  padding: 3rem 2rem;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  border-radius: 12px;
+  border: 3px solid #fbbf24;
+  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.3);
+  text-align: center;
+  color: #fff;
+}
+
+.certificate h2 {
+  font-size: 2rem;
+  margin-bottom: 1rem;
+  color: #fbbf24;
+}
+
+.certificate .badge {
+  font-size: 4rem;
+  margin: 1rem 0;
+}
+
+.certificate .platform {
+  font-size: 1.5rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  margin: 1rem 0;
+  color: #fff;
+}
+
+.certificate .message {
+  font-size: 1.1rem;
+  margin: 1.5rem 0;
+  color: #f0f0f0;
+}
+
+.certificate .timestamp {
+  font-size: 0.9rem;
+  color: #ddd;
+  margin-top: 2rem;
+  font-style: italic;
 }
