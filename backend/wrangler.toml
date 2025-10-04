@@ -9,7 +9,7 @@ ENVIRONMENT = "development"
 [[d1_databases]]
 binding = "DB"
 database_name = "platform-readiness-db"
-database_id = ""
+database_id = "6c30695e-1d43-4cfa-b494-8784fd36c996"
 
 # R2 bucket binding for storing repo code
 [[r2_buckets]]
@@ -19,4 +19,4 @@ bucket_name = "platform-readiness-repos"
 # KV namespace for caching
 [[kv_namespaces]]
 binding = "CACHE"
-id = ""
+id = "11ff8f47caa94041b9b6f2ff2081fff0"
