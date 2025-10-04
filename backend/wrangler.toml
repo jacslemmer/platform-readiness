@@ -1,0 +1,22 @@
+name = "platform-readiness-backend"
+main = "src/index.ts"
+compatibility_date = "2024-01-01"
+
+[vars]
+ENVIRONMENT = "development"
+
+# D1 Database binding
+[[d1_databases]]
+binding = "DB"
+database_name = "platform-readiness-db"
+database_id = ""
+
+# R2 bucket binding for storing repo code
+[[r2_buckets]]
+binding = "REPO_STORAGE"
+bucket_name = "platform-readiness-repos"
+
+# KV namespace for caching
+[[kv_namespaces]]
+binding = "CACHE"
+id = ""
