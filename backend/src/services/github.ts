@@ -14,37 +14,78 @@ export const fetchRepository = async (
     return JSON.parse(cached);
   }
 
+  // Fetch important files that we need to check for platform readiness
+  const importantFiles = [
+    'package.json',
+    'wrangler.toml',
+    'azure.yaml',
+    '.azure/config',
+    'Dockerfile',
+    'docker-compose.yml',
+    '.env.example',
+    'tsconfig.json'
+  ];
+
+  const files: RepoFile[] = [];
+
+  // Try to fetch tree first to get all files
   const apiUrl = `https://api.github.com/repos/${owner}/${repo}/git/trees/${branch}?recursive=1`;
 
-  const response = await fetch(apiUrl, {
+  const treeResponse = await fetch(apiUrl, {
     headers: {
       'User-Agent': 'Platform-Readiness-Tool',
       'Accept': 'application/vnd.github.v3+json'
     }
   });
 
-  if (!response.ok) {
-    throw new Error(`Failed to fetch repository: ${response.statusText}`);
+  if (!treeResponse.ok) {
+    const errorText = await treeResponse.text();
+    throw new Error(`Failed to fetch repository: ${treeResponse.status} ${treeResponse.statusText} - ${errorText}`);
   }
 
-  const data = await response.json<{ tree: Array<{ path: string; type: string; url?: string }> }>();
+  const treeData = await treeResponse.json<{ tree: Array<{ path: string; type: string; sha: string }> }>();
 
-  const files: RepoFile[] = [];
-
-  for (const item of data.tree) {
-    if (item.type === 'blob' && item.url) {
-      const fileContent = await fetchFileContent(item.url);
-      files.push({
-        path: item.path,
-        content: fileContent,
-        type: 'file'
-      });
+  // Fetch content for key files
+  for (const item of treeData.tree) {
+    if (item.type === 'blob' && (
+      importantFiles.includes(item.path) ||
+      item.path.endsWith('.ts') ||
+      item.path.endsWith('.js') ||
+      item.path.endsWith('.json')
+    )) {
+      try {
+        const content = await fetchFileFromRepo(owner, repo, item.path, branch);
+        files.push({
+          path: item.path,
+          content,
+          type: 'file'
+        });
+      } catch (err) {
+        console.error(`Failed to fetch ${item.path}:`, err);
+      }
     }
   }
 
   await env.CACHE.put(cacheKey, JSON.stringify(files), { expirationTtl: 300 });
 
   return files;
+};
+
+const fetchFileFromRepo = async (owner: string, repo: string, path: string, branch: string): Promise<string> => {
+  const url = `https://api.github.com/repos/${owner}/${repo}/contents/${path}?ref=${branch}`;
+
+  const response = await fetch(url, {
+    headers: {
+      'User-Agent': 'Platform-Readiness-Tool',
+      'Accept': 'application/vnd.github.v3.raw'
+    }
+  });
+
+  if (!response.ok) {
+    return '';
+  }
+
+  return await response.text();
 };
 
 const fetchFileContent = async (url: string): Promise<string> => {

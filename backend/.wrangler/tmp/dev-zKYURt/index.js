@@ -1638,32 +1638,48 @@ var fetchRepository = /* @__PURE__ */ __name(async (repoUrl, branch, env) => {
   if (cached) {
     return JSON.parse(cached);
   }
+  const importantFiles = [
+    "package.json",
+    "wrangler.toml",
+    "azure.yaml",
+    ".azure/config",
+    "Dockerfile",
+    "docker-compose.yml",
+    ".env.example",
+    "tsconfig.json"
+  ];
+  const files = [];
   const apiUrl = `https://api.github.com/repos/${owner}/${repo}/git/trees/${branch}?recursive=1`;
-  const response = await fetch(apiUrl, {
+  const treeResponse = await fetch(apiUrl, {
     headers: {
       "User-Agent": "Platform-Readiness-Tool",
       "Accept": "application/vnd.github.v3+json"
     }
   });
-  if (!response.ok) {
-    throw new Error(`Failed to fetch repository: ${response.statusText}`);
+  if (!treeResponse.ok) {
+    const errorText = await treeResponse.text();
+    throw new Error(`Failed to fetch repository: ${treeResponse.status} ${treeResponse.statusText} - ${errorText}`);
   }
-  const data = await response.json();
-  const files = [];
-  for (const item of data.tree) {
-    if (item.type === "blob" && item.url) {
-      const fileContent = await fetchFileContent(item.url);
-      files.push({
-        path: item.path,
-        content: fileContent,
-        type: "file"
-      });
+  const treeData = await treeResponse.json();
+  for (const item of treeData.tree) {
+    if (item.type === "blob" && (importantFiles.includes(item.path) || item.path.endsWith(".ts") || item.path.endsWith(".js") || item.path.endsWith(".json"))) {
+      try {
+        const content = await fetchFileFromRepo(owner, repo, item.path, branch);
+        files.push({
+          path: item.path,
+          content,
+          type: "file"
+        });
+      } catch (err) {
+        console.error(`Failed to fetch ${item.path}:`, err);
+      }
     }
   }
   await env.CACHE.put(cacheKey, JSON.stringify(files), { expirationTtl: 300 });
   return files;
 }, "fetchRepository");
-var fetchFileContent = /* @__PURE__ */ __name(async (url) => {
+var fetchFileFromRepo = /* @__PURE__ */ __name(async (owner, repo, path, branch) => {
+  const url = `https://api.github.com/repos/${owner}/${repo}/contents/${path}?ref=${branch}`;
   const response = await fetch(url, {
     headers: {
       "User-Agent": "Platform-Readiness-Tool",
@@ -1674,7 +1690,7 @@ var fetchFileContent = /* @__PURE__ */ __name(async (url) => {
     return "";
   }
   return await response.text();
-}, "fetchFileContent");
+}, "fetchFileFromRepo");
 var parseRepoUrl = /* @__PURE__ */ __name((url) => {
   const match = url.match(/github\.com\/([^\/]+)\/([^\/]+)/);
   if (!match) {
