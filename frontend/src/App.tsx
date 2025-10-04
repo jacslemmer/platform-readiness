@@ -15,6 +15,10 @@ interface AnalysisResult {
   timestamp: string;
 }
 
+const API_URL = import.meta.env.PROD
+  ? 'https://platform-readiness-backend.jaco-lemmer.workers.dev'
+  : '/api';
+
 const App = () => {
   const [repoUrl, setRepoUrl] = useState('');
   const [targetPlatform, setTargetPlatform] = useState<'azure' | 'cloudflare'>('cloudflare');
@@ -33,7 +37,7 @@ const App = () => {
     setResult(null);
 
     try {
-      const response = await fetch('/api/analyze', {
+      const response = await fetch(`${API_URL}/analyze`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ repoUrl, targetPlatform })
@@ -58,7 +62,7 @@ const App = () => {
     setLoading(true);
 
     try {
-      const response = await fetch('/api/port', {
+      const response = await fetch(`${API_URL}/port`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ analysisId: result.id })
