@@ -13,22 +13,27 @@ app.get('/health', (c) => {
 });
 
 app.post('/analyze', async (c) => {
-  const body = await c.req.json<AnalysisRequest>();
+  try {
+    const body = await c.req.json<AnalysisRequest>();
 
-  const { repoUrl, targetPlatform, branch = 'main' } = body;
+    const { repoUrl, targetPlatform, branch = 'main' } = body;
 
-  if (!repoUrl || !targetPlatform) {
-    return c.json({ error: 'repoUrl and targetPlatform are required' }, 400);
+    if (!repoUrl || !targetPlatform) {
+      return c.json({ error: 'repoUrl and targetPlatform are required' }, 400);
+    }
+
+    const result = await analyzeRepository(
+      repoUrl,
+      targetPlatform,
+      branch,
+      c.env
+    );
+
+    return c.json(result);
+  } catch (error) {
+    console.error('Analysis error:', error);
+    return c.json({ error: error instanceof Error ? error.message : 'Analysis failed' }, 500);
   }
-
-  const result = await analyzeRepository(
-    repoUrl,
-    targetPlatform,
-    branch,
-    c.env
-  );
-
-  return c.json(result);
 });
 
 app.post('/port', async (c) => {

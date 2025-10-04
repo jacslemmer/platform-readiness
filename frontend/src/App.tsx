@@ -37,17 +37,24 @@ const App = () => {
     setResult(null);
 
     try {
+      // Normalize repo URL - accept both full URLs and owner/repo format
+      let normalizedUrl = repoUrl.trim();
+      if (!normalizedUrl.includes('github.com')) {
+        normalizedUrl = `https://github.com/${normalizedUrl}`;
+      }
+
       const response = await fetch(`${API_URL}/analyze`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ repoUrl, targetPlatform })
+        body: JSON.stringify({ repoUrl: normalizedUrl, targetPlatform })
       });
 
+      const data = await response.json();
+
       if (!response.ok) {
-        throw new Error('Analysis failed');
+        throw new Error(data.error || 'Analysis failed');
       }
 
-      const data = await response.json();
       setResult(data);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'An error occurred');
@@ -103,7 +110,7 @@ const App = () => {
           <input
             id="repoUrl"
             type="text"
-            placeholder="https://github.com/username/repo"
+            placeholder="username/repo or https://github.com/username/repo"
             value={repoUrl}
             onChange={(e) => setRepoUrl(e.target.value)}
             disabled={loading}
