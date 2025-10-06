@@ -1,0 +1,21 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(pkill:*)",
+      "mcp__ide__getDiagnostics",
+      "WebSearch",
+      "WebFetch(domain:developers.cloudflare.com)",
+      "Bash(mkdir:*)",
+      "Bash(wrangler deployments:*)",
+      "Bash(wrangler whoami:*)",
+      "Read(//Users/jacobuslemmer/Desktop/**)",
+      "Bash(npm run build:*)",
+      "Bash(npx tsc:*)",
+      "Bash(wrangler deploy:*)",
+      "Bash(git restore:*)",
+      "Bash(git add:*)"
+    ],
+    "deny": [],
+    "ask": []
+  }
+}

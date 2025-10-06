@@ -1,6 +1,6 @@
 import { Hono } from 'hono';
 import { cors } from 'hono/cors';
-import type { Env, AnalysisRequest } from './types';
+import type { Env, AnalysisRequest, PortRequest } from './types';
 import { analyzeRepository } from './services/analyzer';
 import { generatePatch } from './services/patcher';
 
@@ -37,15 +37,15 @@ app.post('/analyze', async (c) => {
 });
 
 app.post('/port', async (c) => {
-  const body = await c.req.json<{ analysisId: string }>();
+  const body = await c.req.json<PortRequest>();
 
-  const { analysisId } = body;
+  const { analysisId, databaseChoice, storageChoice } = body;
 
   if (!analysisId) {
     return c.json({ error: 'analysisId is required' }, 400);
   }
 
-  const patch = await generatePatch(analysisId, c.env);
+  const patch = await generatePatch(analysisId, c.env, { databaseChoice, storageChoice });
 
   if (!patch) {
     return c.json({ error: 'Analysis not found' }, 404);
@@ -55,7 +55,7 @@ app.post('/port', async (c) => {
 });
 
 app.get('/analysis/:id', async (c) => {
-  const { id } = c.param();
+  const id = c.req.param('id');
 
   const result = await c.env.DB.prepare(
     'SELECT * FROM analyses WHERE id = ?'

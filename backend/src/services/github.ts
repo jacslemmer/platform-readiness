@@ -88,21 +88,6 @@ const fetchFileFromRepo = async (owner: string, repo: string, path: string, bran
   return await response.text();
 };
 
-const fetchFileContent = async (url: string): Promise<string> => {
-  const response = await fetch(url, {
-    headers: {
-      'User-Agent': 'Platform-Readiness-Tool',
-      'Accept': 'application/vnd.github.v3.raw'
-    }
-  });
-
-  if (!response.ok) {
-    return '';
-  }
-
-  return await response.text();
-};
-
 const parseRepoUrl = (url: string): { owner: string; repo: string } => {
   const match = url.match(/github\.com\/([^\/]+)\/([^\/]+)/);
 

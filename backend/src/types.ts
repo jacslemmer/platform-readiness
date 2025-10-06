@@ -13,6 +13,12 @@ export interface AnalysisRequest {
   branch?: string;
 }
 
+export interface PortRequest {
+  analysisId: string;
+  databaseChoice?: 'azure-sql-free' | 'azure-sql-paid' | 'cosmosdb-free' | 'postgresql' | 'mysql' | 'd1';
+  storageChoice?: 'blob-storage' | 'r2' | 'cosmosdb-storage';
+}
+
 export interface AnalysisResult {
   id: string;
   repoUrl: string;
@@ -39,7 +45,11 @@ export interface PlatformConfig {
 
 export type ReadinessChecker = (repoFiles: RepoFile[]) => ReadinessIssue[];
 
-export type PlatformPorter = (repoFiles: RepoFile[], issues: ReadinessIssue[]) => PortingResult;
+export type PlatformPorter = (
+  repoFiles: RepoFile[],
+  issues: ReadinessIssue[],
+  preferences?: { databaseChoice?: string; storageChoice?: string }
+) => PortingResult;
 
 export interface RepoFile {
   path: string;

@@ -27,6 +27,9 @@ const App = () => {
   const [error, setError] = useState('');
   const [ported, setPorted] = useState(false);
   const [portedPlatform, setPortedPlatform] = useState('');
+  const [showPortOptions, setShowPortOptions] = useState(false);
+  const [databaseChoice, setDatabaseChoice] = useState('azure-sql-free');
+  const [storageChoice, setStorageChoice] = useState('blob-storage');
 
   const analyzeRepo = async () => {
     if (!repoUrl) {
@@ -74,7 +77,11 @@ const App = () => {
       const response = await fetch(`${API_URL}/port`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ analysisId: result.id })
+        body: JSON.stringify({
+          analysisId: result.id,
+          databaseChoice: targetPlatform === 'azure' ? databaseChoice : 'd1',
+          storageChoice: targetPlatform === 'azure' ? storageChoice : 'r2'
+        })
       });
 
       if (!response.ok) {
@@ -155,26 +162,92 @@ const App = () => {
 
           {result.issues.length > 0 && (
             <div className="issues">
-              <h3>Issues Found ({result.issues.length})</h3>
-              {result.issues.map((issue, index) => (
-                <div key={index} className={`issue ${issue.severity}`}>
-                  <div className="issue-header">
-                    <span className="category">{issue.category}</span>
-                    <span className="severity">{issue.severity}</span>
+              <h3>Readiness Report ({result.issues.length} issues found)</h3>
+
+              {/* Group by severity */}
+              {['error', 'warning', 'info'].map(severity => {
+                const issuesForSeverity = result.issues.filter(i => i.severity === severity);
+                if (issuesForSeverity.length === 0) return null;
+
+                return (
+                  <div key={severity} className="issue-group">
+                    <h4 className={`severity-header ${severity}`}>
+                      {severity === 'error' && '🚫 Blocking Issues'}
+                      {severity === 'warning' && '⚠️ Warnings'}
+                      {severity === 'info' && 'ℹ️ Recommendations'}
+                      {' '}({issuesForSeverity.length})
+                    </h4>
+                    {issuesForSeverity.map((issue, index) => (
+                      <div key={index} className={`issue ${issue.severity}`}>
+                        <div className="issue-header">
+                          <span className="category">{issue.category}</span>
+                        </div>
+                        <p className="message">{issue.message}</p>
+                        {issue.suggestion && (
+                          <p className="suggestion">💡 {issue.suggestion}</p>
+                        )}
+                      </div>
+                    ))}
                   </div>
-                  <p className="message">{issue.message}</p>
-                  {issue.suggestion && (
-                    <p className="suggestion">💡 {issue.suggestion}</p>
-                  )}
-                </div>
-              ))}
+                );
+              })}
             </div>
           )}
 
-          {!result.isReady && !ported && (
-            <button onClick={downloadPatch} disabled={loading} className="download-btn">
-              {loading ? 'Generating...' : 'Download Porting Patch'}
-            </button>
+          {!result.isReady && !ported && !showPortOptions && (
+            <div className="porting-section">
+              <h3>Ready to Port?</h3>
+              <p>
+                The Platform Readiness tool can automatically generate fixes for many of these issues.
+                {targetPlatform === 'azure' && result.issues.some(i => i.category === 'database' || i.category === 'storage') && (
+                  <> You'll be able to choose your database and storage options.</>
+                )}
+              </p>
+              <button onClick={() => setShowPortOptions(true)} disabled={loading} className="download-btn">
+                Continue to Port Options
+              </button>
+            </div>
+          )}
+
+          {!result.isReady && !ported && showPortOptions && (
+            <div className="porting-section">
+              <h3>Select Porting Options</h3>
+
+              {targetPlatform === 'azure' && result.issues.some(i => i.category === 'database') && (
+                <div className="option-group">
+                  <label>Database Solution:</label>
+                  <select value={databaseChoice} onChange={(e) => setDatabaseChoice(e.target.value)}>
+                    <option value="azure-sql-free">✅ Azure SQL Free Tier (FREE FOREVER - 32GB) - RECOMMENDED</option>
+                    <option value="cosmosdb-free">✅ Cosmos DB Free Tier (FREE FOREVER - 25GB) - NoSQL</option>
+                    <option value="azure-sql-paid">💰 Azure SQL Paid (~$5+/month) - Enterprise</option>
+                    <option value="postgresql">⏰ PostgreSQL (Free 12 months, then ~$15-30/mo)</option>
+                    <option value="mysql">⏰ MySQL (Free 12 months, then ~$15-30/mo)</option>
+                  </select>
+                </div>
+              )}
+
+              {targetPlatform === 'azure' && result.issues.some(i => i.category === 'storage') && (
+                <div className="option-group">
+                  <label>Storage Solution:</label>
+                  <select value={storageChoice} onChange={(e) => setStorageChoice(e.target.value)}>
+                    <option value="blob-storage">Azure Blob Storage (Recommended)</option>
+                  </select>
+                </div>
+              )}
+
+              <div className="button-group">
+                <button onClick={() => setShowPortOptions(false)} className="back-btn">
+                  ← Back
+                </button>
+                <button onClick={downloadPatch} disabled={loading} className="download-btn">
+                  {loading ? 'Generating Patch...' : 'Generate Porting Patch'}
+                </button>
+              </div>
+
+              <p className="help-text">
+                After downloading, apply with: <code>git apply {targetPlatform}-port.patch</code>
+              </p>
+            </div>
           )}
 
           {ported && (

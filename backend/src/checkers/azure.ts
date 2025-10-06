@@ -26,18 +26,23 @@ export const checkAzureReadiness = (repoFiles: RepoFile[]): ReadinessIssue[] => 
   if (hasSQLite) {
     issues.push({
       category: 'database',
-      severity: 'warning',
-      message: 'SQLite may not persist in Azure App Service',
-      suggestion: 'Migrate to Azure SQL Database or Cosmos DB'
+      severity: 'error',
+      message: 'SQLite database will not persist in Azure App Service (ephemeral file system)',
+      suggestion: 'Choose a cloud database when porting:\n' +
+        '✅ Azure SQL Free Tier (FREE FOREVER - 32GB, 100K vCore seconds/month) - RECOMMENDED\n' +
+        '✅ Cosmos DB Free Tier (FREE FOREVER - 25GB, 1000 RU/s) - For NoSQL/MongoDB apps\n' +
+        '💰 Azure SQL Paid (~$5+/month) - For enterprise needs (>10 DBs, >32GB)\n' +
+        '⏰ PostgreSQL (~$15-30/month after 12 months free)\n' +
+        '⏰ MySQL (~$15-30/month after 12 months free)'
     });
   }
 
   if (hasLocalStorage) {
     issues.push({
       category: 'storage',
-      severity: 'warning',
-      message: 'Local file storage may not persist in Azure App Service',
-      suggestion: 'Migrate to Azure Blob Storage'
+      severity: 'error',
+      message: 'Local file storage will not persist in Azure App Service (ephemeral file system)',
+      suggestion: 'Migrate to Azure Blob Storage for persistent file storage'
     });
   }
 

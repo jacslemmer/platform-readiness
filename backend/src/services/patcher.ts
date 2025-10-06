@@ -4,7 +4,11 @@ import { portToAzure } from '../porters/azure';
 
 export const generatePatch = async (
   analysisId: string,
-  env: Env
+  env: Env,
+  preferences?: {
+    databaseChoice?: string;
+    storageChoice?: string;
+  }
 ): Promise<{ patch: string; summary: string } | null> => {
   const analysis = await env.DB.prepare(
     'SELECT * FROM analyses WHERE id = ?'
@@ -26,7 +30,7 @@ export const generatePatch = async (
   const issues = JSON.parse(analysis.issues as string);
 
   const porter = getPorter(analysis.target_platform as string);
-  const portingResult = porter(repoFiles, issues);
+  const portingResult = porter(repoFiles, issues, preferences);
 
   if (!portingResult.success) {
     throw new Error('Porting failed');
@@ -56,20 +60,36 @@ const generateGitPatch = (result: PortingResult): string => {
 
   for (const file of result.files) {
     if (file.action === 'create') {
+      const lines = file.content.split('\n');
       patch += `diff --git a/${file.path} b/${file.path}\n`;
       patch += `new file mode 100644\n`;
       patch += `--- /dev/null\n`;
       patch += `+++ b/${file.path}\n`;
-      patch += `@@ -0,0 +1,${file.content.split('\n').length} @@\n`;
-      patch += file.content.split('\n').map(line => `+${line}`).join('\n');
-      patch += '\n';
+      patch += `@@ -0,0 +1,${lines.length} @@\n`;
+      patch += lines.map(line => `+${line}`).join('\n');
+      if (!file.content.endsWith('\n')) {
+        patch += '\n';
+      }
     } else if (file.action === 'modify') {
+      // For modifications, we replace the entire file content
+      // This is a simplified approach - in reality we'd want proper diff
+      const lines = file.content.split('\n');
       patch += `diff --git a/${file.path} b/${file.path}\n`;
       patch += `--- a/${file.path}\n`;
       patch += `+++ b/${file.path}\n`;
-      patch += `@@ -1,1 +1,${file.content.split('\n').length} @@\n`;
-      patch += file.content.split('\n').map(line => `+${line}`).join('\n');
-      patch += '\n';
+      // Note: This creates a patch that replaces the entire file
+      // The format is: @@ -startLine,lineCount +startLine,lineCount @@
+      // We're saying "replace all old lines with these new lines"
+      patch += `@@ -1 +1,${lines.length} @@\n`;
+      patch += lines.map(line => `+${line}`).join('\n');
+      if (!file.content.endsWith('\n')) {
+        patch += '\n';
+      }
+    } else if (file.action === 'delete') {
+      patch += `diff --git a/${file.path} b/${file.path}\n`;
+      patch += `deleted file mode 100644\n`;
+      patch += `--- a/${file.path}\n`;
+      patch += `+++ /dev/null\n`;
     }
   }
 

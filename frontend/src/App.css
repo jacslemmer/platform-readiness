@@ -207,3 +207,117 @@ button:disabled {
   margin-top: 2rem;
   font-style: italic;
 }
+
+.issue-group {
+  margin-bottom: 2rem;
+}
+
+.severity-header {
+  margin: 1.5rem 0 1rem 0;
+  font-size: 1.1rem;
+  font-weight: 600;
+  padding: 0.5rem 0;
+  border-bottom: 2px solid #333;
+}
+
+.severity-header.error {
+  color: #ff6b6b;
+  border-bottom-color: #ff6b6b;
+}
+
+.severity-header.warning {
+  color: #fbbf24;
+  border-bottom-color: #fbbf24;
+}
+
+.severity-header.info {
+  color: #60a5fa;
+  border-bottom-color: #60a5fa;
+}
+
+.porting-section {
+  margin-top: 2rem;
+  padding: 2rem;
+  background: #0a0a0a;
+  border-radius: 8px;
+  border: 2px dashed #646cff;
+}
+
+.porting-section h3 {
+  margin-top: 0;
+  color: #fff;
+}
+
+.porting-section p {
+  color: #ccc;
+  line-height: 1.6;
+}
+
+.porting-section .help-text {
+  margin-top: 1rem;
+  font-size: 0.9rem;
+  color: #888;
+  text-align: center;
+}
+
+.porting-section code {
+  background: #1a1a1a;
+  padding: 0.25rem 0.5rem;
+  border-radius: 3px;
+  font-family: 'Courier New', monospace;
+  color: #10b981;
+}
+
+.option-group {
+  margin: 1.5rem 0;
+  text-align: left;
+}
+
+.option-group label {
+  display: block;
+  margin-bottom: 0.5rem;
+  color: #fff;
+  font-weight: 600;
+}
+
+.option-group select {
+  width: 100%;
+  padding: 0.75rem;
+  background: #1a1a1a;
+  color: #fff;
+  border: 1px solid #333;
+  border-radius: 6px;
+  font-size: 0.95rem;
+  cursor: pointer;
+}
+
+.option-group select:hover {
+  border-color: #646cff;
+}
+
+.option-group select:focus {
+  outline: none;
+  border-color: #646cff;
+}
+
+.button-group {
+  display: flex;
+  gap: 1rem;
+  margin-top: 2rem;
+}
+
+.back-btn {
+  flex: 1;
+  padding: 0.75rem 1.5rem;
+  background: #333;
+  color: #fff;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  font-weight: 600;
+  transition: background 0.2s;
+}
+
+.back-btn:hover {
+  background: #444;
+}
