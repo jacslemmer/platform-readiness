@@ -34,30 +34,38 @@ export const checkAzureReadiness = (repoFiles: RepoFile[]): ReadinessIssue[] => 
     return issues;
   }
 
-  // If low portability score (30-50), add warnings
+  // If low portability score (30-50), recommend rebuilding
   if (portability.score < 50) {
     issues.push({
       category: 'runtime',
-      severity: 'warning',
-      message: `⚠️ LOW PORTABILITY: Score ${portability.score}/100 - High manual effort required`,
-      suggestion: `${portability.recommendation}\n\nEstimated Effort: ${portability.estimatedEffort}`
+      severity: 'error',
+      message: `❌ NOT RECOMMENDED TO PORT: Portability Score ${portability.score}/100`,
+      suggestion: `🚨 RECOMMENDATION: REBUILD FROM SCRATCH\n\n` +
+        `This application has a portability score below 50, meaning:\n` +
+        `• Porting will require extensive manual work (${portability.estimatedEffort})\n` +
+        `• Rebuilding as Azure-native will be FASTER and result in better architecture\n` +
+        `• The automated porter cannot adequately handle these issues\n\n` +
+        `${portability.recommendation}\n\n` +
+        `❌ The Platform Readiness tool STRONGLY RECOMMENDS rebuilding this application from scratch for Azure.\n` +
+        `✅ Building Azure-native from the start will save time and produce superior results.`
     });
 
-    // Add non-blocking portability issues as warnings
+    // Add all portability issues as errors to emphasize severity
     portability.issues.forEach(issue => {
-      if (!issue.blocker) {
-        issues.push({
-          category: 'runtime',
-          severity: 'warning',
-          message: issue.description,
-          suggestion: `Impact: -${issue.impact} points. Manual work required to fix.`
-        });
-      }
+      issues.push({
+        category: 'runtime',
+        severity: 'error',
+        message: `[${issue.blocker ? 'BLOCKER' : 'CRITICAL'}] ${issue.description}`,
+        suggestion: `Impact: -${issue.impact} points. ${issue.blocker ? 'Fundamental incompatibility.' : 'Requires significant manual work.'}`
+      });
     });
+
+    // Return early - don't show other issues, focus on rebuild recommendation
+    return issues;
   }
 
   // ========================================
-  // STEP 2: CONTINUE WITH STANDARD CHECKS (only if score >= 30)
+  // STEP 2: CONTINUE WITH STANDARD CHECKS (only if score >= 50)
   // ========================================
 
   const hasAzureConfig = repoFiles.some(f => f.path === 'azure.yaml' || f.path === '.azure/config');

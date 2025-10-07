@@ -262,7 +262,10 @@ const App = () => {
             </div>
           )}
 
-          {!result.isReady && !ported && !showPortOptions && (
+          {!result.isReady && !ported && !showPortOptions && !result.issues.some(i =>
+            i.message.includes('CANNOT PORT') ||
+            i.message.includes('NOT RECOMMENDED TO PORT')
+          ) && (
             <div className="porting-section">
               <h3>Generate Fix Recommendations</h3>
               <p>
@@ -277,6 +280,26 @@ const App = () => {
               <button onClick={() => setShowPortOptions(true)} disabled={loading} className="download-btn">
                 Continue to Options
               </button>
+            </div>
+          )}
+
+          {!result.isReady && !ported && result.issues.some(i =>
+            i.message.includes('CANNOT PORT') ||
+            i.message.includes('NOT RECOMMENDED TO PORT')
+          ) && (
+            <div className="porting-section" style={{backgroundColor: '#fee', borderColor: '#d00'}}>
+              <h3>❌ Application Cannot Be Automatically Ported</h3>
+              <p style={{fontSize: '1.1em', fontWeight: 'bold', color: '#d00'}}>
+                This application has fundamental incompatibilities that prevent automated porting.
+              </p>
+              <p>
+                Based on the portability analysis above, this application requires a complete rebuild
+                rather than automated porting. Please review the detailed recommendations in the blocking issues.
+              </p>
+              <p style={{fontWeight: 'bold', marginTop: '1em'}}>
+                💡 <strong>Recommended Action:</strong> Build a new Azure-native application from scratch.
+                This will be faster and produce better results than attempting to port.
+              </p>
             </div>
           )}
 
