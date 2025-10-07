@@ -35,12 +35,18 @@ export const fetchRepository = async (
   // Try to fetch tree first to get all files
   const apiUrl = `https://api.github.com/repos/${owner}/${repo}/git/trees/${branch}?recursive=1`;
 
-  const treeResponse = await fetch(apiUrl, {
-    headers: {
-      'User-Agent': 'Platform-Readiness-Tool',
-      'Accept': 'application/vnd.github.v3+json'
-    }
-  });
+  const headers: Record<string, string> = {
+    'User-Agent': 'Platform-Readiness-Tool',
+    'Accept': 'application/vnd.github.v3+json'
+  };
+
+  // Add authentication if credentials are available
+  if (env.GITHUB_CLIENT_ID && env.GITHUB_CLIENT_SECRET) {
+    const auth = btoa(`${env.GITHUB_CLIENT_ID}:${env.GITHUB_CLIENT_SECRET}`);
+    headers['Authorization'] = `Basic ${auth}`;
+  }
+
+  const treeResponse = await fetch(apiUrl, { headers });
 
   if (!treeResponse.ok) {
     const errorText = await treeResponse.text();
@@ -58,7 +64,7 @@ export const fetchRepository = async (
       item.path.endsWith('.json')
     )) {
       try {
-        const content = await fetchFileFromRepo(owner, repo, item.path, branch);
+        const content = await fetchFileFromRepo(owner, repo, item.path, branch, env);
         files.push({
           path: item.path,
           content,
@@ -75,15 +81,21 @@ export const fetchRepository = async (
   return files;
 };
 
-const fetchFileFromRepo = async (owner: string, repo: string, path: string, branch: string): Promise<string> => {
+const fetchFileFromRepo = async (owner: string, repo: string, path: string, branch: string, env: Env): Promise<string> => {
   const url = `https://api.github.com/repos/${owner}/${repo}/contents/${path}?ref=${branch}`;
 
-  const response = await fetch(url, {
-    headers: {
-      'User-Agent': 'Platform-Readiness-Tool',
-      'Accept': 'application/vnd.github.v3.raw'
-    }
-  });
+  const headers: Record<string, string> = {
+    'User-Agent': 'Platform-Readiness-Tool',
+    'Accept': 'application/vnd.github.v3.raw'
+  };
+
+  // Add authentication if credentials are available
+  if (env.GITHUB_CLIENT_ID && env.GITHUB_CLIENT_SECRET) {
+    const auth = btoa(`${env.GITHUB_CLIENT_ID}:${env.GITHUB_CLIENT_SECRET}`);
+    headers['Authorization'] = `Basic ${auth}`;
+  }
+
+  const response = await fetch(url, { headers });
 
   if (!response.ok) {
     return '';
