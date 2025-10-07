@@ -119,9 +119,26 @@ const App = () => {
         throw new Error('Failed to generate patch');
       }
 
-      const { patch } = await response.json();
+      const data = await response.json();
 
-      const blob = new Blob([patch], { type: 'text/plain' });
+      // Handle portability rejection
+      if (!data.success || !data.canPort) {
+        setError(
+          `❌ Cannot Port: This application cannot be automatically ported.\n\n` +
+          `Portability Score: ${data.portability?.score || 0}/100\n\n` +
+          `${data.summary}\n\n` +
+          `Please see the detailed recommendation above.`
+        );
+        return;
+      }
+
+      // Handle successful porting with warnings
+      if (data.portability && data.portability.score < 50) {
+        // Show warning but continue with download
+        console.warn(`Low portability score: ${data.portability.score}/100`);
+      }
+
+      const blob = new Blob([data.patch], { type: 'text/plain' });
       const url = URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;

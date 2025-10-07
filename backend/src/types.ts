@@ -1,3 +1,5 @@
+import type { PortabilityResult } from './services/portabilityChecker';
+
 export interface Env {
   DB: D1Database;
   REPO_STORAGE: R2Bucket;
@@ -62,6 +64,7 @@ export interface PortingResult {
   success: boolean;
   files: PortedFile[];
   summary: string;
+  portability?: PortabilityResult;
 }
 
 export interface PortedFile {

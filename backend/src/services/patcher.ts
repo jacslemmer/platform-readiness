@@ -1,6 +1,15 @@
 import type { Env, RepoFile, PortingResult } from '../types';
+import type { PortabilityResult } from './portabilityChecker';
 import { portToCloudflare } from '../porters/cloudflare';
 import { portToAzure } from '../porters/azure';
+
+export interface PatchResult {
+  patch?: string;
+  summary: string;
+  success: boolean;
+  canPort?: boolean;
+  portability?: PortabilityResult;
+}
 
 export const generatePatch = async (
   analysisId: string,
@@ -9,7 +18,7 @@ export const generatePatch = async (
     databaseChoice?: string;
     storageChoice?: string;
   }
-): Promise<{ patch: string; summary: string } | null> => {
+): Promise<PatchResult | null> => {
   const analysis = await env.DB.prepare(
     'SELECT * FROM analyses WHERE id = ?'
   )
@@ -32,15 +41,24 @@ export const generatePatch = async (
   const porter = getPorter(analysis.target_platform as string);
   const portingResult = porter(repoFiles, issues, preferences);
 
+  // Handle portability rejection (score < 30)
   if (!portingResult.success) {
-    throw new Error('Porting failed');
+    return {
+      success: false,
+      canPort: false,
+      summary: portingResult.summary,
+      portability: portingResult.portability
+    };
   }
 
   const patch = generateGitPatch(portingResult);
 
   return {
+    success: true,
+    canPort: true,
     patch,
-    summary: portingResult.summary
+    summary: portingResult.summary,
+    portability: portingResult.portability
   };
 };
 

@@ -1,10 +1,45 @@
 import type { RepoFile, ReadinessIssue, PortingResult, PortedFile } from '../types';
+import { calculatePortabilityScore, type PortabilityResult } from '../services/portabilityChecker';
 
 export const portToAzure = (
   repoFiles: RepoFile[],
   issues: ReadinessIssue[],
   preferences?: { databaseChoice?: string; storageChoice?: string }
 ): PortingResult => {
+  // ========================================
+  // STEP 1: PRE-FLIGHT PORTABILITY CHECK
+  // ========================================
+  const portability = calculatePortabilityScore(repoFiles);
+
+  // REJECT if score too low (< 30)
+  if (portability.score < 30) {
+    return {
+      success: false,
+      files: [],
+      summary: portability.recommendation + '\n\n' +
+               `Portability Score: ${portability.score}/100\n` +
+               `Severity: ${portability.severity}\n\n` +
+               `Issues Found:\n` +
+               portability.issues.map(issue =>
+                 `• [${issue.blocker ? 'BLOCKER' : 'ISSUE'}] ${issue.description}`
+               ).join('\n') + '\n\n' +
+               `Estimated Effort: ${portability.estimatedEffort}\n\n` +
+               `The platform-readiness tool cannot generate a functional patch.\n` +
+               `A new Azure-native application must be built from scratch.`,
+      portability
+    };
+  }
+
+  // WARN if score medium (30-50)
+  if (portability.score < 50) {
+    console.warn(`⚠️ Low portability score (${portability.score}/100) - high manual effort required`);
+    // Continue with porting, but include warnings in documentation
+  }
+
+  // ========================================
+  // STEP 2: PROCEED WITH PORTING (only if score >= 30)
+  // ========================================
+
   const portedFiles: PortedFile[] = [];
   const fixedIssues: string[] = [];
 
@@ -142,13 +177,14 @@ export const portToAzure = (
   fixedIssues.push('Created .env.example template for configuration');
 
   // === FIX 11: Create deployment README ===
-  const readme = createDeploymentReadme(issues, fixedIssues, packageJson);
+  const readme = createDeploymentReadme(issues, fixedIssues, packageJson, portability);
   portedFiles.push(readme);
 
   return {
     success: true,
     files: portedFiles,
-    summary: generateSummary(fixedIssues, issues)
+    summary: generateSummary(fixedIssues, issues, portability),
+    portability
   };
 };
 
@@ -452,12 +488,42 @@ const convertLocalStorageToBlobStorage = (repoFiles: RepoFile[]): PortedFile[] =
   fsFiles.forEach(file => {
     let content = file.content;
 
-    // Replace fs imports
-    content = content.replace(/import\s+.*fs.*from\s+['"]fs['"];?/g, "import { BlobServiceClient } from '@azure/storage-blob';");
+    // Add import for storage module at the top if not already present
+    if (!content.includes("from './storage'") && !content.includes('from "../storage"')) {
+      // Find first import statement or top of file
+      const firstImportMatch = content.match(/^import\s/m);
+      if (firstImportMatch && firstImportMatch.index !== undefined) {
+        content = content.slice(0, firstImportMatch.index) +
+                  "import { uploadFile, downloadFile } from './storage';\n" +
+                  content.slice(firstImportMatch.index);
+      } else {
+        content = "import { uploadFile, downloadFile } from './storage';\n\n" + content;
+      }
+    }
 
-    // Comment out fs operations
-    content = content.replace(/fs\.writeFile/g, '// TODO: Migrate to Blob Storage - see src/storage.ts');
-    content = content.replace(/fs\.readFile/g, '// TODO: Migrate to Blob Storage - see src/storage.ts');
+    // Fix fs.readFileSync - leave code intact with comment
+    content = content.replace(
+      /(const\s+\w+\s*=\s*fs\.readFileSync\(.*?\);?)/g,
+      '// TODO: Migrate to Azure Blob Storage - see src/storage.ts\n$1'
+    );
+
+    // Fix fs.writeFileSync - leave code intact with comment
+    content = content.replace(
+      /(fs\.writeFileSync\(.*?\);?)/g,
+      '// TODO: Migrate to Azure Blob Storage - see src/storage.ts\n$1'
+    );
+
+    // Fix async fs.readFile - leave code intact with comment
+    content = content.replace(
+      /(fs\.readFile\(.*?\);?)/g,
+      '// TODO: Migrate to Azure Blob Storage - see src/storage.ts and use downloadFile()\n$1'
+    );
+
+    // Fix async fs.writeFile - leave code intact with comment
+    content = content.replace(
+      /(fs\.writeFile\(.*?\);?)/g,
+      '// TODO: Migrate to Azure Blob Storage - see src/storage.ts and use uploadFile()\n$1'
+    );
 
     portedFiles.push({
       path: file.path,
@@ -698,7 +764,8 @@ AZURE_STORAGE_CONTAINER_NAME=uploads
 const createDeploymentReadme = (
   issues: ReadinessIssue[],
   fixedIssues: string[],
-  packageJson: any
+  packageJson: any,
+  portability: PortabilityResult
 ): PortedFile => {
   const manualIssues = issues.filter(i =>
     i.severity === 'warning' || i.severity === 'info'
@@ -707,6 +774,28 @@ const createDeploymentReadme = (
   const appName = packageJson.name || 'app';
 
   let content = `# Azure App Service Deployment Guide
+
+## Portability Assessment
+
+**Score:** ${portability.score}/100
+**Severity:** ${portability.severity}
+**Can Port:** ${portability.canPort ? '✅ Yes' : '❌ No'}
+
+${portability.recommendation}
+
+---
+
+## Estimated Effort
+
+**Automated by Porter:** ${Math.max(0, 100 - portability.score)}% of issues addressed
+**Manual Work Required:** ${portability.estimatedEffort}
+
+${portability.score < 50 ? `
+⚠️ **WARNING:** This application has a low portability score.
+Consider whether porting is worth the effort vs rebuilding from scratch.
+` : ''}
+
+---
 
 ## What Was Fixed Automatically
 
@@ -907,18 +996,22 @@ const getDatabaseName = (choice: string): string => {
   }
 };
 
-const generateSummary = (fixedIssues: string[], allIssues: ReadinessIssue[]): string => {
+const generateSummary = (fixedIssues: string[], allIssues: ReadinessIssue[], portability: PortabilityResult): string => {
   const errorCount = allIssues.filter(i => i.severity === 'error').length;
   const warningCount = allIssues.filter(i => i.severity === 'warning').length;
 
   return `Successfully ported application to Azure App Service.
 
+Portability Score: ${portability.score}/100 (${portability.severity})
+${portability.score < 50 ? '⚠️ Warning: Low portability score - significant manual work required\n' : ''}
 Fixed ${fixedIssues.length} issues automatically:
 ${fixedIssues.map(f => `  • ${f}`).join('\n')}
 
 Total issues found: ${allIssues.length} (${errorCount} errors, ${warningCount} warnings)
 Automatic fixes applied: ${fixedIssues.length}
 Manual steps required: See AZURE_DEPLOYMENT.md
+
+Estimated Manual Effort: ${portability.estimatedEffort}
 
 Next: Create Azure resources and deploy using Azure CLI or Azure Portal`;
 };
