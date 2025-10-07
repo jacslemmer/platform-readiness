@@ -1,5 +1,21 @@
 import type { Env, RepoFile } from '../types';
 
+/**
+ * Creates authenticated headers for GitHub API requests
+ */
+const createGitHubHeaders = (env: Env, accept: string): Record<string, string> => {
+  const headers: Record<string, string> = {
+    'User-Agent': 'Platform-Readiness-Tool',
+    'Accept': accept
+  };
+
+  if (env.GITHUB_TOKEN) {
+    headers['Authorization'] = `Bearer ${env.GITHUB_TOKEN}`;
+  }
+
+  return headers;
+};
+
 export const fetchRepository = async (
   repoUrl: string,
   branch: string,
@@ -34,16 +50,7 @@ export const fetchRepository = async (
 
   // Try to fetch tree first to get all files
   const apiUrl = `https://api.github.com/repos/${owner}/${repo}/git/trees/${branch}?recursive=1`;
-
-  const headers: Record<string, string> = {
-    'User-Agent': 'Platform-Readiness-Tool',
-    'Accept': 'application/vnd.github.v3+json'
-  };
-
-  // Add authentication with Personal Access Token
-  if (env.GITHUB_TOKEN) {
-    headers['Authorization'] = `Bearer ${env.GITHUB_TOKEN}`;
-  }
+  const headers = createGitHubHeaders(env, 'application/vnd.github.v3+json');
 
   const treeResponse = await fetch(apiUrl, { headers });
 
@@ -82,16 +89,7 @@ export const fetchRepository = async (
 
 const fetchFileFromRepo = async (owner: string, repo: string, path: string, branch: string, env: Env): Promise<string> => {
   const url = `https://api.github.com/repos/${owner}/${repo}/contents/${path}?ref=${branch}`;
-
-  const headers: Record<string, string> = {
-    'User-Agent': 'Platform-Readiness-Tool',
-    'Accept': 'application/vnd.github.v3.raw'
-  };
-
-  // Add authentication with Personal Access Token
-  if (env.GITHUB_TOKEN) {
-    headers['Authorization'] = `Bearer ${env.GITHUB_TOKEN}`;
-  }
+  const headers = createGitHubHeaders(env, 'application/vnd.github.v3.raw');
 
   const response = await fetch(url, { headers });
 
