@@ -16,7 +16,7 @@ app.post('/analyze', async (c) => {
   try {
     const body = await c.req.json<AnalysisRequest>();
 
-    const { repoUrl, targetPlatform, branch = 'main' } = body;
+    const { repoUrl, targetPlatform, branch = 'main', bypassCache = false } = body;
 
     if (!repoUrl || !targetPlatform) {
       return c.json({ error: 'repoUrl and targetPlatform are required' }, 400);
@@ -26,7 +26,8 @@ app.post('/analyze', async (c) => {
       repoUrl,
       targetPlatform,
       branch,
-      c.env
+      c.env,
+      bypassCache
     );
 
     return c.json(result);

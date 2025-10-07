@@ -30,6 +30,7 @@ const App = () => {
   const [showPortOptions, setShowPortOptions] = useState(false);
   const [databaseChoice, setDatabaseChoice] = useState('azure-sql-free');
   const [storageChoice, setStorageChoice] = useState('blob-storage');
+  const [bypassCache, setBypassCache] = useState(false);
 
   const analyzeRepo = async () => {
     if (!repoUrl) {
@@ -51,7 +52,7 @@ const App = () => {
       const response = await fetch(`${API_URL}/analyze`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ repoUrl: normalizedUrl, targetPlatform })
+        body: JSON.stringify({ repoUrl: normalizedUrl, targetPlatform, bypassCache })
       });
 
       const data = await response.json();
@@ -66,6 +67,36 @@ const App = () => {
     } finally {
       setLoading(false);
     }
+  };
+
+  const downloadCSV = () => {
+    if (!result) return;
+
+    // Generate CSV content
+    const csvRows = [
+      ['Severity', 'Category', 'Message', 'Suggestion'],
+      ...result.issues.map(issue => [
+        issue.severity,
+        issue.category,
+        issue.message,
+        issue.suggestion || ''
+      ])
+    ];
+
+    const csvContent = csvRows
+      .map(row => row.map(cell => `"${cell.replace(/"/g, '""')}"`).join(','))
+      .join('\n');
+
+    // Download CSV file
+    const blob = new Blob([csvContent], { type: 'text/csv' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `${targetPlatform}-readiness-report.csv`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
   };
 
   const downloadPatch = async () => {
@@ -141,6 +172,21 @@ const App = () => {
           </select>
         </div>
 
+        <div className="form-group checkbox-group">
+          <label>
+            <input
+              type="checkbox"
+              checked={bypassCache}
+              onChange={(e) => setBypassCache(e.target.checked)}
+              disabled={loading}
+            />
+            <span>Force refresh (bypass cache)</span>
+          </label>
+          <p className="help-text">
+            Check this if you've recently updated your repository and want to analyze the latest changes
+          </p>
+        </div>
+
         <button onClick={analyzeRepo} disabled={loading}>
           {loading ? 'Analyzing...' : 'Analyze Repository'}
         </button>
@@ -162,7 +208,12 @@ const App = () => {
 
           {result.issues.length > 0 && (
             <div className="issues">
-              <h3>Readiness Report ({result.issues.length} issues found)</h3>
+              <div className="issues-header">
+                <h3>Readiness Report ({result.issues.length} issues found)</h3>
+                <button onClick={downloadCSV} className="csv-btn">
+                  📥 Download CSV Report
+                </button>
+              </div>
 
               {/* Group by severity */}
               {['error', 'warning', 'info'].map(severity => {
@@ -196,15 +247,18 @@ const App = () => {
 
           {!result.isReady && !ported && !showPortOptions && (
             <div className="porting-section">
-              <h3>Ready to Port?</h3>
+              <h3>Generate Fix Recommendations</h3>
               <p>
-                The Platform Readiness tool can automatically generate fixes for many of these issues.
+                The Platform Readiness tool can generate a patch file with recommended code fixes for many of these issues.
                 {targetPlatform === 'azure' && result.issues.some(i => i.category === 'database' || i.category === 'storage') && (
                   <> You'll be able to choose your database and storage options.</>
                 )}
               </p>
+              <p className="manual-note">
+                ⚠️ Note: The patch file must be manually applied to your local repository using <code>git apply</code>
+              </p>
               <button onClick={() => setShowPortOptions(true)} disabled={loading} className="download-btn">
-                Continue to Port Options
+                Continue to Options
               </button>
             </div>
           )}
@@ -240,13 +294,19 @@ const App = () => {
                   ← Back
                 </button>
                 <button onClick={downloadPatch} disabled={loading} className="download-btn">
-                  {loading ? 'Generating Patch...' : 'Generate Porting Patch'}
+                  {loading ? 'Generating...' : 'Download Patch File'}
                 </button>
               </div>
 
-              <p className="help-text">
-                After downloading, apply with: <code>git apply {targetPlatform}-port.patch</code>
-              </p>
+              <div className="patch-instructions">
+                <p className="help-text">
+                  📝 After downloading, you'll need to manually apply the patch to your local repository:
+                </p>
+                <code className="command-block">git apply {targetPlatform}-port.patch</code>
+                <p className="help-text">
+                  Then review the changes, commit, and push to your repository.
+                </p>
+              </div>
             </div>
           )}
 

@@ -3,15 +3,19 @@ import type { Env, RepoFile } from '../types';
 export const fetchRepository = async (
   repoUrl: string,
   branch: string,
-  env: Env
+  env: Env,
+  bypassCache: boolean = false
 ): Promise<RepoFile[]> => {
   const { owner, repo } = parseRepoUrl(repoUrl);
 
   const cacheKey = `repo:${owner}/${repo}:${branch}`;
-  const cached = await env.CACHE.get(cacheKey);
 
-  if (cached) {
-    return JSON.parse(cached);
+  if (!bypassCache) {
+    const cached = await env.CACHE.get(cacheKey);
+
+    if (cached) {
+      return JSON.parse(cached);
+    }
   }
 
   // Fetch important files that we need to check for platform readiness

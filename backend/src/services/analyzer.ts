@@ -8,9 +8,10 @@ export const analyzeRepository = async (
   repoUrl: string,
   targetPlatform: string,
   branch: string,
-  env: Env
+  env: Env,
+  bypassCache: boolean = false
 ): Promise<AnalysisResult> => {
-  const repoFiles = await fetchRepository(repoUrl, branch, env);
+  const repoFiles = await fetchRepository(repoUrl, branch, env, bypassCache);
 
   const checker = getChecker(targetPlatform);
   const issues = checker(repoFiles);

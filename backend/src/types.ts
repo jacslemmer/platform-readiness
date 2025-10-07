@@ -11,6 +11,7 @@ export interface AnalysisRequest {
   repoUrl: string;
   targetPlatform: 'azure' | 'cloudflare' | 'aws';
   branch?: string;
+  bypassCache?: boolean;
 }
 
 export interface PortRequest {

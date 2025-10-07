@@ -44,6 +44,24 @@ h1 {
   font-size: 1rem;
 }
 
+.checkbox-group label {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  cursor: pointer;
+}
+
+.checkbox-group input[type="checkbox"] {
+  width: auto;
+  cursor: pointer;
+}
+
+.checkbox-group .help-text {
+  margin: 0.5rem 0 0 1.75rem;
+  font-size: 0.875rem;
+  color: #888;
+}
+
 button {
   width: 100%;
   padding: 1rem;
@@ -79,6 +97,11 @@ button:disabled {
   background: #1a1a1a;
   padding: 2rem;
   border-radius: 8px;
+}
+
+.results h2 {
+  color: #fff;
+  margin-top: 0;
 }
 
 .status {
@@ -320,4 +343,76 @@ button:disabled {
 
 .back-btn:hover {
   background: #444;
+}
+
+.issues-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1.5rem;
+  gap: 1rem;
+}
+
+.issues-header h3 {
+  margin: 0;
+  color: #fff;
+  flex: 1;
+}
+
+.csv-btn {
+  padding: 0.75rem 1.5rem;
+  background: #10b981;
+  color: #fff;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  font-weight: 600;
+  transition: background 0.2s;
+  white-space: nowrap;
+}
+
+.csv-btn:hover {
+  background: #059669;
+}
+
+.manual-note {
+  color: #fbbf24;
+  font-size: 0.9rem;
+  margin-top: 1rem;
+  padding: 0.75rem;
+  background: rgba(251, 191, 36, 0.1);
+  border-left: 3px solid #fbbf24;
+  border-radius: 4px;
+}
+
+.manual-note code {
+  background: #1a1a1a;
+  padding: 0.2rem 0.4rem;
+  border-radius: 3px;
+  color: #10b981;
+}
+
+.patch-instructions {
+  margin-top: 1.5rem;
+  padding: 1rem;
+  background: rgba(100, 108, 255, 0.1);
+  border: 1px solid #646cff;
+  border-radius: 6px;
+}
+
+.patch-instructions .help-text {
+  margin: 0.5rem 0;
+  color: #ccc;
+  font-size: 0.9rem;
+}
+
+.command-block {
+  display: block;
+  background: #1a1a1a;
+  padding: 0.75rem;
+  border-radius: 4px;
+  font-family: 'Courier New', monospace;
+  color: #10b981;
+  margin: 0.75rem 0;
+  border: 1px solid #333;
 }
