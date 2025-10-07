@@ -32,6 +32,14 @@ const App = () => {
   const [storageChoice, setStorageChoice] = useState('blob-storage');
   const [bypassCache, setBypassCache] = useState(false);
 
+  // Helper to check if app is non-portable
+  const isNonPortable = (result: AnalysisResult | null) => {
+    return result?.issues.some(i =>
+      i.message.includes('CANNOT PORT') ||
+      i.message.includes('NOT RECOMMENDED TO PORT')
+    ) ?? false;
+  };
+
   const analyzeRepo = async () => {
     if (!repoUrl) {
       setError('Please enter a GitHub repository URL');
@@ -262,10 +270,7 @@ const App = () => {
             </div>
           )}
 
-          {!result.isReady && !ported && !showPortOptions && !result.issues.some(i =>
-            i.message.includes('CANNOT PORT') ||
-            i.message.includes('NOT RECOMMENDED TO PORT')
-          ) && (
+          {!result.isReady && !ported && !showPortOptions && !isNonPortable(result) && (
             <div className="porting-section">
               <h3>Generate Fix Recommendations</h3>
               <p>
@@ -283,10 +288,7 @@ const App = () => {
             </div>
           )}
 
-          {!result.isReady && !ported && result.issues.some(i =>
-            i.message.includes('CANNOT PORT') ||
-            i.message.includes('NOT RECOMMENDED TO PORT')
-          ) && (
+          {!result.isReady && !ported && isNonPortable(result) && (
             <div className="porting-section" style={{backgroundColor: '#fee', borderColor: '#d00'}}>
               <h3>❌ Application Cannot Be Automatically Ported</h3>
               <p style={{fontSize: '1.1em', fontWeight: 'bold', color: '#d00'}}>

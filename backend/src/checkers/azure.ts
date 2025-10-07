@@ -9,6 +9,24 @@ export const checkAzureReadiness = (repoFiles: RepoFile[]): ReadinessIssue[] => 
   // ========================================
   const portability = calculatePortabilityScore(repoFiles);
 
+  // Helper function to add portability issues
+  const addPortabilityIssues = (filterBlockers: boolean) => {
+    portability.issues.forEach(issue => {
+      if (filterBlockers ? issue.blocker : true) {
+        issues.push({
+          category: 'runtime',
+          severity: 'error',
+          message: `[${issue.blocker ? 'BLOCKER' : 'CRITICAL'}] ${issue.description}`,
+          suggestion: `Impact: -${issue.impact} points. ${
+            issue.blocker
+              ? 'This is a fundamental incompatibility that cannot be automatically fixed.'
+              : 'Requires significant manual work.'
+          }`
+        });
+      }
+    });
+  };
+
   // If app cannot be ported (score < 30), add CRITICAL blocking issue
   if (portability.score < 30) {
     issues.push({
@@ -18,19 +36,7 @@ export const checkAzureReadiness = (repoFiles: RepoFile[]): ReadinessIssue[] => 
       suggestion: portability.recommendation
     });
 
-    // Add detailed portability issues
-    portability.issues.forEach(issue => {
-      if (issue.blocker) {
-        issues.push({
-          category: 'runtime',
-          severity: 'error',
-          message: `[BLOCKER] ${issue.description}`,
-          suggestion: `Impact: -${issue.impact} points. This is a fundamental incompatibility that cannot be automatically fixed.`
-        });
-      }
-    });
-
-    // Return early - no point checking other issues if app fundamentally can't be ported
+    addPortabilityIssues(true); // Only add blocker issues
     return issues;
   }
 
@@ -50,17 +56,7 @@ export const checkAzureReadiness = (repoFiles: RepoFile[]): ReadinessIssue[] => 
         `✅ Building Azure-native from the start will save time and produce superior results.`
     });
 
-    // Add all portability issues as errors to emphasize severity
-    portability.issues.forEach(issue => {
-      issues.push({
-        category: 'runtime',
-        severity: 'error',
-        message: `[${issue.blocker ? 'BLOCKER' : 'CRITICAL'}] ${issue.description}`,
-        suggestion: `Impact: -${issue.impact} points. ${issue.blocker ? 'Fundamental incompatibility.' : 'Requires significant manual work.'}`
-      });
-    });
-
-    // Return early - don't show other issues, focus on rebuild recommendation
+    addPortabilityIssues(false); // Add all portability issues
     return issues;
   }
 
