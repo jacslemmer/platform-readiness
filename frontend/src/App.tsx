@@ -107,6 +107,131 @@ const App = () => {
     URL.revokeObjectURL(url);
   };
 
+  const downloadCertificate = () => {
+    if (!result) return;
+
+    const platformName = targetPlatform === 'azure' ? 'Microsoft Azure' : 'Cloudflare';
+    const date = new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' });
+
+    // Create certificate HTML
+    const certificateHTML = `
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <title>Platform Ready Certificate - ${platformName}</title>
+  <style>
+    body {
+      margin: 0;
+      padding: 40px;
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      min-height: 100vh;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+    }
+    .certificate {
+      background: white;
+      padding: 60px;
+      border-radius: 20px;
+      box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+      max-width: 800px;
+      text-align: center;
+    }
+    .badge {
+      font-size: 72px;
+      margin-bottom: 20px;
+    }
+    h1 {
+      color: #333;
+      font-size: 36px;
+      margin: 20px 0;
+    }
+    .platform {
+      font-size: 28px;
+      color: #667eea;
+      font-weight: bold;
+      margin: 20px 0;
+    }
+    .repo {
+      font-size: 18px;
+      color: #666;
+      font-family: 'Courier New', monospace;
+      margin: 20px 0;
+      padding: 10px;
+      background: #f5f5f5;
+      border-radius: 5px;
+    }
+    .message {
+      font-size: 18px;
+      color: #555;
+      line-height: 1.8;
+      margin: 30px 0;
+    }
+    .timestamp {
+      font-size: 14px;
+      color: #888;
+      margin-top: 40px;
+      padding-top: 20px;
+      border-top: 2px solid #eee;
+    }
+    .checkmarks {
+      text-align: left;
+      display: inline-block;
+      margin: 20px 0;
+    }
+    .checkmark-item {
+      font-size: 16px;
+      color: #2ecc71;
+      margin: 10px 0;
+    }
+    @media print {
+      body {
+        background: white;
+        padding: 0;
+      }
+      .certificate {
+        box-shadow: none;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="certificate">
+    <div class="badge">🏆</div>
+    <h1>Platform Ready Certificate</h1>
+    <p class="platform">${platformName}</p>
+    <p class="repo">${result.repoUrl}</p>
+    <p class="message">
+      This application has been analyzed and is certified ready for deployment on ${platformName}.
+    </p>
+    <div class="checkmarks">
+      <div class="checkmark-item">✅ All platform requirements met</div>
+      <div class="checkmark-item">✅ No blocking compatibility issues</div>
+      <div class="checkmark-item">✅ Ready for production deployment</div>
+    </div>
+    <p class="timestamp">
+      Certified by Platform Readiness Checker<br>
+      ${date}
+    </p>
+  </div>
+</body>
+</html>
+    `;
+
+    // Download certificate as HTML
+    const blob = new Blob([certificateHTML], { type: 'text/html' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `${targetPlatform}-ready-certificate.html`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  };
+
   const downloadPatch = async () => {
     if (!result) return;
 
@@ -230,6 +355,29 @@ const App = () => {
               <p>⚠️ Your application needs changes for {result.targetPlatform}</p>
             )}
           </div>
+
+          {result.isReady && (
+            <div className="certificate">
+              <div className="badge">🏆</div>
+              <h2>Platform Ready Certificate</h2>
+              <p className="platform">{targetPlatform === 'azure' ? 'Microsoft Azure' : 'Cloudflare'}</p>
+              <p className="message">
+                This application has been analyzed and is certified ready for deployment on {targetPlatform === 'azure' ? 'Microsoft Azure' : 'Cloudflare'}.
+              </p>
+              <p className="message">
+                ✅ All platform requirements met<br />
+                ✅ No blocking compatibility issues<br />
+                ✅ Ready for production deployment
+              </p>
+              <p className="timestamp">
+                Certified by Platform Readiness Checker<br />
+                {new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })}
+              </p>
+              <button onClick={downloadCertificate} className="download-btn" style={{marginTop: '20px'}}>
+                📥 Download Certificate
+              </button>
+            </div>
+          )}
 
           {result.issues.length > 0 && (
             <div className="issues">
