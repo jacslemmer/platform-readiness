@@ -40,10 +40,9 @@ export const fetchRepository = async (
     'Accept': 'application/vnd.github.v3+json'
   };
 
-  // Add authentication if credentials are available
-  if (env.GITHUB_CLIENT_ID && env.GITHUB_CLIENT_SECRET) {
-    const auth = btoa(`${env.GITHUB_CLIENT_ID}:${env.GITHUB_CLIENT_SECRET}`);
-    headers['Authorization'] = `Basic ${auth}`;
+  // Add authentication with Personal Access Token
+  if (env.GITHUB_TOKEN) {
+    headers['Authorization'] = `Bearer ${env.GITHUB_TOKEN}`;
   }
 
   const treeResponse = await fetch(apiUrl, { headers });
@@ -89,10 +88,9 @@ const fetchFileFromRepo = async (owner: string, repo: string, path: string, bran
     'Accept': 'application/vnd.github.v3.raw'
   };
 
-  // Add authentication if credentials are available
-  if (env.GITHUB_CLIENT_ID && env.GITHUB_CLIENT_SECRET) {
-    const auth = btoa(`${env.GITHUB_CLIENT_ID}:${env.GITHUB_CLIENT_SECRET}`);
-    headers['Authorization'] = `Basic ${auth}`;
+  // Add authentication with Personal Access Token
+  if (env.GITHUB_TOKEN) {
+    headers['Authorization'] = `Bearer ${env.GITHUB_TOKEN}`;
   }
 
   const response = await fetch(url, { headers });

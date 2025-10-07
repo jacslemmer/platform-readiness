@@ -4,8 +4,9 @@ export interface Env {
   DB: D1Database;
   REPO_STORAGE: R2Bucket;
   CACHE: KVNamespace;
-  GITHUB_CLIENT_ID: string;
-  GITHUB_CLIENT_SECRET: string;
+  GITHUB_TOKEN: string;
+  GITHUB_CLIENT_ID?: string;  // Legacy, no longer used
+  GITHUB_CLIENT_SECRET?: string;  // Legacy, no longer used
   ENVIRONMENT: string;
 }
 
