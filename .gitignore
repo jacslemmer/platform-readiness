@@ -36,3 +36,16 @@ coverage/
 # Wrangler
 .wrangler/
 .dev.vars
+
+# macOS
+*.DS_Store
+.AppleDouble
+.LSOverride
+
+# Temporary files
+*.tmp
+*.temp
+*~
+
+# Cache
+.cache/
