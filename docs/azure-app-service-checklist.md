@@ -1,6 +1,6 @@
 # Azure App Service Production Readiness Checklist
 
-This comprehensive checklist is compiled from official Microsoft Azure documentation (2025).
+This comprehensive checklist is compiled from official Microsoft Azure documentation (2025) and hard-learned production lessons.
 
 **Sources:**
 - https://learn.microsoft.com/en-us/azure/well-architected/service-guides/app-service-web-apps
@@ -9,6 +9,83 @@ This comprehensive checklist is compiled from official Microsoft Azure documenta
 - https://learn.microsoft.com/en-us/azure/app-service/overview-security
 - https://learn.microsoft.com/en-us/azure/app-service/monitor-instances-health-check
 - https://learn.microsoft.com/en-us/azure/app-service/app-service-best-practices
+
+**Additional Critical Insights**: See [azure-new-insights-collated.md](./azure-new-insights-collated.md) for MANDATORY requirements learned through production debugging (Mixed Content errors, port binding, health endpoints, etc.)
+
+---
+
+## ⚠️ CRITICAL: Read This First
+
+**Before any Azure deployment**, you MUST review [azure-new-insights-collated.md](./azure-new-insights-collated.md) which contains:
+
+1. **Mixed Content Error Solution** - HTTPS frontend cannot call HTTP backend (browser blocks it)
+2. **Port Binding Requirements** - Must listen on `process.env.PORT` not hardcoded ports
+3. **Two Health Endpoints Required** - `/health` (liveness) AND `/ready` (readiness)
+4. **SIGTERM Handler** - Graceful shutdown for zero-downtime deployments
+5. **Structured Logging** - JSON to stdout/stderr only, NO console.log
+6. **Operational Runbooks** - Required for production (templates provided)
+7. **RPO/RTO Targets** - Define recovery objectives before architecting
+8. **Database Migrations in CI/CD** - Idempotent migrations required
+9. **Azure Container Registry** - Never use `latest` tag
+10. **Deployment Slots with Swap-Preview** - Multi-phase deployment process
+
+**These are NOT optional** - they will cause production failures if missing.
+
+---
+
+## 0. ⚠️ CRITICAL BLOCKERS (Fix These First)
+
+### 0.1 Mixed Content Security (PRODUCTION BLOCKER)
+- [ ] **Backend MUST use HTTPS** - Browser blocks HTTPS→HTTP requests
+  - **Severity**: CRITICAL ERROR
+  - **Auto-fixable**: No (requires Azure infrastructure change)
+  - **Action**: Enable HTTPS on Container Instance/App Service OR use Application Gateway/Front Door for TLS termination
+  - **Symptom**: "Mixed Content: The page at 'https://...' was loaded over HTTPS, but requested an insecure resource 'http://...'"
+  - **Reference**: See azure-new-insights-collated.md section "Mixed Content Error Solution"
+
+- [ ] **Frontend API URL uses HTTPS** - Environment variable, not hardcoded
+  - **Severity**: CRITICAL ERROR
+  - **Auto-fixable**: Yes (update env var)
+  - **Action**: Set `VITE_API_URL=https://...` or `REACT_APP_API_URL=https://...` in Static Web App settings
+
+### 0.2 Port Binding (STARTUP BLOCKER)
+- [ ] **App listens on Azure-provided port** - process.env.PORT or $PORT
+  - **Severity**: CRITICAL ERROR
+  - **Auto-fixable**: Yes
+  - **Action**: Change `app.listen(3001)` to `app.listen(process.env.PORT || 8080)`
+  - **Symptom**: Container starts but health checks fail, app unreachable
+  - **Startup timeout**: App must start within 60 seconds
+
+### 0.3 Health Endpoints (RELIABILITY BLOCKER)
+- [ ] **/health endpoint (liveness)** - Basic health check
+  - **Severity**: CRITICAL ERROR
+  - **Auto-fixable**: Yes
+  - **Action**: Add GET `/health` returning 200 OK with `{"status":"healthy"}`
+  - **Response time**: Must respond within 5 seconds
+
+- [ ] **/ready endpoint (readiness)** - Comprehensive health check
+  - **Severity**: CRITICAL ERROR
+  - **Auto-fixable**: Yes
+  - **Action**: Add GET `/ready` that checks DB, cache, external dependencies
+  - **Failure behavior**: 3 consecutive failures = instance removed from load balancer
+
+### 0.4 Graceful Shutdown (ZERO-DOWNTIME BLOCKER)
+- [ ] **SIGTERM handler implemented** - Clean shutdown on deployment
+  - **Severity**: CRITICAL ERROR
+  - **Auto-fixable**: Yes
+  - **Action**: Add `process.on('SIGTERM', () => { server.close(); /* cleanup */ })`
+  - **Consequence**: Without this, active requests drop during deployments
+
+### 0.5 Logging Configuration (DEBUGGING BLOCKER)
+- [ ] **Logs to stdout/stderr only** - No file-based logging
+  - **Severity**: ERROR
+  - **Auto-fixable**: Yes
+  - **Action**: Remove fs.writeFile for logs, use console.log/console.error
+
+- [ ] **Structured JSON logging** - Parseable logs for Application Insights
+  - **Severity**: WARNING
+  - **Auto-fixable**: Yes
+  - **Action**: Use Winston/Pino/Bunyan with JSON formatter, not raw console.log
 
 ---
 
@@ -490,6 +567,10 @@ This comprehensive checklist is compiled from official Microsoft Azure documenta
 
 ## Checklist Summary by Severity
 
+### CRITICAL ERRORS (MUST FIX - Production Blockers): 9 items ⚠️
+- **Section 0**: Mixed Content (2), Port Binding (1), Health Endpoints (2), Graceful Shutdown (1), Logging (3)
+- **Consequence**: App will NOT work in production without these
+
 ### ERRORS (Blocking Deployment): 11 items
 - Configuration: 3 items (package.json, start script, azure config)
 - Reliability: 2 items (Premium tier, 2+ instances)
@@ -516,19 +597,44 @@ This comprehensive checklist is compiled from official Microsoft Azure documenta
 - Cost: 5 items
 - DR/BC: 4 items
 
-**Total Items: 80 checklist items**
+**Total Items: 89 checklist items** (was 80, added 9 critical blockers from production lessons)
 
 ---
 
-## Auto-Fixable Items (Can be automated): 12 items
-## Manual Items (Require Azure portal/user config): 68 items
+## Auto-Fixable Items (Can be automated): 18 items (was 12, added 6 critical fixes)
+## Manual Items (Require Azure portal/user config): 71 items (was 68, added 3 from critical section)
 
 ---
 
 ## Azure Well-Architected Framework Pillars Coverage
 
-1. **Reliability**: 10 items
-2. **Security**: 17 items
+1. **Reliability**: 13 items (added health endpoints, graceful shutdown, port binding)
+2. **Security**: 19 items (added HTTPS requirement, structured logging)
 3. **Cost Optimization**: 5 items
 4. **Operational Excellence**: 10 items
 5. **Performance Efficiency**: 10 items
+
+---
+
+## 🚨 DEPLOYMENT READINESS: Step-by-Step
+
+**Phase 0: Critical Blockers (DO THESE FIRST)**
+1. ✅ Fix Mixed Content error (enable HTTPS on backend)
+2. ✅ Update frontend API URL to use https://
+3. ✅ Change port binding to process.env.PORT
+4. ✅ Add /health endpoint
+5. ✅ Add /ready endpoint
+6. ✅ Implement SIGTERM handler
+7. ✅ Switch to stdout/stderr logging
+8. ✅ Add structured JSON logging
+
+**Phase 1: Configuration Errors**
+→ Work through Section 1-4 ERROR items
+
+**Phase 2: Security & Monitoring Warnings**
+→ Work through Section 3-5 WARNING items
+
+**Phase 3: Optimization**
+→ Work through Section 6-9 INFO items
+
+**DO NOT skip Phase 0** - these will cause immediate production failures.

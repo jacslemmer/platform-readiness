@@ -2,6 +2,23 @@
 
 A web application to test AI-generated wrapper applications for cloud platform deployment readiness and automatically port them to target platforms.
 
+## ⚠️ DEPLOYING TO AZURE? START HERE FIRST ⚠️
+
+**MANDATORY READING BEFORE ANY AZURE DEPLOYMENT:**
+
+👉 **[AZURE-START-HERE.md](./AZURE-START-HERE.md)** 👈
+
+This document contains **critical production requirements** that WILL cause deployment failures if ignored:
+- Mixed Content error solution (HTTPS requirements)
+- Port binding requirements
+- Health endpoint specifications
+- Graceful shutdown implementation
+- Logging configuration
+
+**Cost of skipping**: 3 days of debugging + unnecessary Azure charges (we learned the hard way)
+
+---
+
 ## Features
 
 - **GitHub Integration**: Fetch and analyze applications directly from GitHub repositories
